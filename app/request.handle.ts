@@ -48,7 +48,7 @@ function handleRequest(request: IRequest): string | CommandError {
         case 'ECHO' || 'echo':
             return `${request.params[0]}`;
         case 'SET' || 'set':
-            Data.set(request.params[0], request.params[1]);
+            Data.set(request.params[0], request.params[1], +request.params[3] ?? 0);
             return `OK`;
         case 'GET' || 'get':
             return Data.get(request.params[0]);
