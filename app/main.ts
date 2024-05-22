@@ -9,7 +9,7 @@ const server: net.Server = net.createServer((connection: net.Socket) => {
   connection.on('data', data => {
     const response = "+PONG\r\n";
     connection.write(response);
-    connection.end();
+    // connection.end();
   })
 });
 
