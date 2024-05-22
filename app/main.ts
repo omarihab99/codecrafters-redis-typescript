@@ -9,15 +9,13 @@ import { CommandError, ParserError } from "./CustomError";
  * @param {Buffer} data - The data received from the socket.
  */
 async function responseHandler(socket: net.Socket, data: Buffer) {
-
-    const request = parseCommand(data.toString());
-    
+    const request = parseCommand(data.toString());  
     if (!(request instanceof ParserError)) {
-        const arg = handleRequest(...request);
+        const arg = handleRequest(request);
         if (arg instanceof CommandError) {
             socket.write(`$${arg.message}\r\n`);
         } else {
-            const response = buildResponse(arg);
+            const response = buildResponse(arg,arg.length === 0 ? -1 : arg.length);
             socket.write(response);
         }
     }

@@ -14,4 +14,12 @@ class CommandError extends Error {
         return `CommandError: ${this.message}`;
     }
 }
-export { ParserError, CommandError }
+class DataError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+    public toString() {
+        return `DataError: ${this.message}.`;
+    }
+}
+export { ParserError, CommandError, DataError };
