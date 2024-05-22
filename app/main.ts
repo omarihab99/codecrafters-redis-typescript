@@ -1,7 +1,7 @@
 import * as net from "net";
 import Rx from "rxjs";
-// You can use print statements as follows for debugging, they'll be visible when running tests.
-// console.log("Logs from your program will appear here!");
+import { buildResponse, handleRequest, parseCommand } from "./request.handle";
+import { CommandError, ParserError } from "./CustomError";
 
 /**
  * Handles the response by writing it to the socket.
@@ -9,9 +9,11 @@ import Rx from "rxjs";
  * @param {Buffer} data - The data received from the socket.
  */
 async function responseHandler(socket: net.Socket, data: Buffer) {
-    const requests = parseCommand(data.toString());
-    if (!(requests instanceof ParserError)) {
-        const arg = handleRequest(...requests);
+
+    const request = parseCommand(data.toString());
+    
+    if (!(request instanceof ParserError)) {
+        const arg = handleRequest(...request);
         if (arg instanceof CommandError) {
             socket.write(`$${arg.message}\r\n`);
         } else {
@@ -19,6 +21,8 @@ async function responseHandler(socket: net.Socket, data: Buffer) {
             socket.write(response);
         }
     }
+    // console.log(request.toString());
+
 }
 /**
 * Handles the socket connection and responds to incoming data with a response message.

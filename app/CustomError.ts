@@ -14,3 +14,4 @@ class CommandError extends Error {
         return `CommandError: ${this.message}`;
     }
 }
+export { ParserError, CommandError }

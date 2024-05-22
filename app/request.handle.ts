@@ -1,12 +1,19 @@
+import { CommandError, ParserError } from "./CustomError";
 /**
  * Parses a command string and returns an array of matches or a ParserError if the command is invalid.
  * @param {string} command - The command string to parse.
- * @return {RegExpMatchArray | ParserError} An array of matches or a ParserError if the command is invalid.
+ * @return {string[] | ParserError} An array of matches or a ParserError if the command is invalid.
  */
-function parseCommand(command: string): RegExpMatchArray | ParserError {
-    const re = new RegExp('\b[a-zA-Z]+\b|\bd+\b');
-    const matches: RegExpMatchArray | null = command.match(re);
+function parseCommand(command: string): string[] | ParserError {
+    //TODO: Implement it suing regex.
+
+    const matches = command.split('\r\n');
     if (matches) {
+        console.log(matches);
+
+        matches[0] = matches[0].substring(1);
+        matches[1] = matches[1].substring(1);
+        matches[3] = matches[3].substring(1);
         return matches;
     }
     return new ParserError(`Invalid command: ${command}`);
@@ -35,3 +42,5 @@ function handleRequest(...args: string[]): string | CommandError {
 function buildResponse(arg: string): string {
     return `$${arg.length}\r\n${arg}\r\n`;
 }
+
+export { parseCommand, handleRequest, buildResponse };
