@@ -46,7 +46,7 @@ function parseCommand(command: string): IRequest | ParserError {
  * @param {IRequest} request - An IRequest object representing the command arguments.
  * @return {string | CommandError} - The response string or a CommandError if the command is invalid.
  */
-function handleRequest(request: IRequest): string | CommandError {
+function handleRequest(request: IRequest,role: string): string | CommandError {
   const { command } = request;
   switch (command) {
     case "PING" || "ping":
@@ -59,7 +59,7 @@ function handleRequest(request: IRequest): string | CommandError {
     case "GET" || "get":
       return Data.get(request.params[0]);
     case "INFO" || "info":
-        return "role:master";
+        return `role:${role}`;
     default:
       return new CommandError(`Invalid command: ${command}`);
   }

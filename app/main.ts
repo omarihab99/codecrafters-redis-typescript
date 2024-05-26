@@ -4,15 +4,16 @@ import { buildResponse, handleRequest, parseCommand } from "./request.handle";
 import { CommandError, ParserError } from "./CustomError";
 import process from "process";
 import { logger } from "./logger";
+import arg from "arg";
 /**
  * Handles the response by writing it to the socket.
  * @param {net.Socket} socket - The socket to write the response to.
  * @param {Buffer} data - The data received from the socket.
  */
-async function responseHandler(socket: net.Socket, data: Buffer) {
+async function responseHandler(socket: net.Socket, data: Buffer, role:string) {
     const request = parseCommand(data.toString());  
     if (!(request instanceof ParserError)) {
-        const arg = handleRequest(request);
+        const arg = handleRequest(request,role);
         if (arg instanceof CommandError) {
             socket.write(`$${arg.message}\r\n`);
         } else {
@@ -28,10 +29,10 @@ async function responseHandler(socket: net.Socket, data: Buffer) {
 * @param {net.Socket} socket - The socket connection to handle.
 * @return {void} This function does not return anything.
 */
-function socketHandler(socket: net.Socket): void {
+function socketHandler(socket: net.Socket, role: string): void {
     const timeNow = new Date();
     console.log(`[${timeNow.toLocaleString()}][SERVER] Connection established...`);
-    socket.on('data', (data: Buffer) => responseHandler(socket, data));
+    socket.on('data', (data: Buffer) => responseHandler(socket, data, role));
 }
 /**
  * Creates a server and listens for incoming socket connections on the specified port.
@@ -39,22 +40,15 @@ function socketHandler(socket: net.Socket): void {
  * @param {number} port - The port number to listen on.
  * @return {void} This function does not return anything.
  */
-function createServer(port: number): void {
+function createServer(port: number, role: string): void {
     const server: net.Server = net.createServer();
     const socketServer: Rx.Observable<net.Socket> = Rx.fromEvent(server, "connection") as Rx.Observable<net.Socket>;
-    socketServer.subscribe(socket => socketHandler(socket));
+    socketServer.subscribe(socket => socketHandler(socket, role));
     server.listen(port, "127.0.0.1");
 }
 
-/**
- * Retrieves the port number from the command line arguments or returns the default port number (6379).
- *
- * @return {number} The port number parsed from the command line arguments or the default port number.
- */
-function getPortNumber() : number{
-    const port = process.argv[3];
-    logger.info(`Running on port ${port}`);
-    return port ? parseInt(port) : 6379;
-}
-
-createServer(getPortNumber());
+const args = arg({
+    "--port": Number,
+    "--replicaof": String,
+});
+createServer(args["--port"] ?? 6379, args["--replicaof"] ? "slave" : "master");
