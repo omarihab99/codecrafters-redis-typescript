@@ -48,17 +48,17 @@ function parseCommand(command: string): IRequest | ParserError {
  */
 function handleRequest(request: IRequest,role: string): string | CommandError {
   const { command } = request;
-  switch (command) {
-    case "PING" || "ping":
+  switch (command.toUpperCase()) {
+    case RedisCommand.PING:
       return `PONG`;
-    case "ECHO" || "echo":
+    case RedisCommand.ECHO:
       return `${request.params[0]}`;
-    case "SET" || "set":
+    case RedisCommand.SET:
       Data.set(request.params[0], request.params[1], +request.params[3] ?? 0);
       return `OK`;
-    case "GET" || "get":
+    case RedisCommand.GET:
       return Data.get(request.params[0]);
-    case "INFO" || "info":
+    case RedisCommand.INFO:
         return `role:${role}`;
     default:
       return new CommandError(`Invalid command: ${command}`);
