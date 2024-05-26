@@ -2,6 +2,7 @@ import { CommandError, ParserError } from "./CustomError";
 import Data from "./data";
 import IRequest from "./IRequest";
 import { RedisCommand } from "./RedisCommand.enum";
+import crypto from "crypto";
 /**
  * Parses a command string and returns an IRequest object or a ParserError if the command is invalid.
  *
@@ -59,6 +60,10 @@ function handleRequest(request: IRequest,role: string): string | CommandError {
     case RedisCommand.GET:
       return Data.get(request.params[0]);
     case RedisCommand.INFO:
+        if(role === "master"){
+            const masterReplId = crypto.randomBytes(20).toString('hex');
+            return `role:${role}\r\nmaster_replid:${masterReplId}\r\nmaster_repl_offset:0`
+        }
         return `role:${role}`;
     default:
       return new CommandError(`Invalid command: ${command}`);
