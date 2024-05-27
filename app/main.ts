@@ -40,6 +40,8 @@ const connectToMaster = (msg: string, options: { host: string, port: number }, p
         } else if (decoded[0][0] === "OK" && countREPL === 1) {
             countREPL++;
             connToMaster.write(encodeArray(["REPLCONF", "capa", "psync2"]));
+        } else if(decoded[0][0] === "OK" && countREPL === 2) {
+            connToMaster.write(encodeArray(["PSYNC", "?", "-1"]));
         }
     })
 }
