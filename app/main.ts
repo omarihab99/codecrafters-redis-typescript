@@ -5,7 +5,6 @@ import { setRule } from "./commands/ReplicaInfo";
 import { encodeArray } from "./encoder";
 import decode from "./decoder";
 
-
 /**
  * Handles the response by writing it to the socket.
  *
