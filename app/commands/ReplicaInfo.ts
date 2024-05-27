@@ -8,4 +8,4 @@ const replicaInfo: IReplicaInfo = { role: "master", master_replid: crypto.random
 const setRule = (isReplica: boolean) => replicaInfo.role = isReplica ? "slave" : "master";
 const getReplicaInfo = (): IReplicaInfo => replicaInfo;
 const serialize = (replicaInfo: IReplicaInfo) => Object.entries(replicaInfo).map(([key, value]) => `${key}:${value}`);
-export { IReplicaInfo, getReplicaInfo, setRule, serialize };
+export { IReplicaInfo, getReplicaInfo, setRule, serialize, replicaInfo };
