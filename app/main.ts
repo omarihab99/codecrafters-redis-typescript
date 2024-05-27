@@ -4,7 +4,8 @@ import { parse, createQueue } from "./parser";
 import { setRule } from "./commands/ReplicaInfo";
 import { encodeArray } from "./encoder";
 import decode from "./decoder";
-
+import { Command } from "./commands/Command";
+import PsyncInfo from "./commands/PsyncInfo";
 /**
  * Handles the response by writing it to the socket.
  *
@@ -13,9 +14,17 @@ import decode from "./decoder";
  * @return {void} This function does not return anything.
  */
 const responseHandler = (connection: net.Socket, data: string): void => {
-    createQueue(parse(data)).commands.forEach((command) => {
-        connection.write(command.execute());
-    });
+  createQueue(parse(data)).commands.forEach((command) => {
+    connection.write(command.execute());
+    if (command.name === Command.PSYNC) {
+      connection.write(
+        Buffer.concat([
+          Buffer.from(`$${PsyncInfo.fileContent.length}\r\n`, "utf-8"),
+          PsyncInfo.fileContent,
+        ])
+      );
+    }
+  });
 };
 /**
  * Connects to the master server and sends a message.
@@ -26,38 +35,44 @@ const responseHandler = (connection: net.Socket, data: string): void => {
  * @param {number} options.port - The port number of the master server.
  * @param {number} port - The port number of the replica server.
  */
-const connectToMaster = (msg: string, options: { host: string, port: number }, port: number) => {
-    const connToMaster = net.createConnection(options, () => {
-        connToMaster.write(encodeArray([msg]));
-    });
-    let countREPL = 0;
-    connToMaster.on('data', (data) => {
-        const decoded = decode(data.toString());
-        if (decoded[0][0] === "PONG") {
-            countREPL++;
-            connToMaster.write(encodeArray(["REPLCONF", "listening-port", `${port}`]));
-        } else if (decoded[0][0] === "OK" && countREPL === 1) {
-            countREPL++;
-            connToMaster.write(encodeArray(["REPLCONF", "capa", "psync2"]));
-        } else if(decoded[0][0] === "OK" && countREPL === 2) {
-            connToMaster.write(encodeArray(["PSYNC", "?", "-1"]));
-        }
-    })
-}
+const connectToMaster = (
+  msg: string,
+  options: { host: string; port: number },
+  port: number
+) => {
+  const connToMaster = net.createConnection(options, () => {
+    connToMaster.write(encodeArray([msg]));
+  });
+  let countREPL = 0;
+  connToMaster.on("data", (data) => {
+    const decoded = decode(data.toString());
+    if (decoded[0][0] === "PONG") {
+      countREPL++;
+      connToMaster.write(
+        encodeArray(["REPLCONF", "listening-port", `${port}`])
+      );
+    } else if (decoded[0][0] === "OK" && countREPL === 1) {
+      countREPL++;
+      connToMaster.write(encodeArray(["REPLCONF", "capa", "psync2"]));
+    } else if (decoded[0][0] === "OK" && countREPL === 2) {
+      connToMaster.write(encodeArray(["PSYNC", "?", "-1"]));
+    }
+  });
+};
 const server = net.createServer((connection) => {
-    connection.on('data', (data) => {
-        responseHandler(connection, data.toString());
-    });
+  connection.on("data", (data) => {
+    responseHandler(connection, data.toString());
+  });
 });
 
 const args = arg({
-    "--port": Number,
-    "--replicaof": String,
+  "--port": Number,
+  "--replicaof": String,
 });
-server.listen((args["--port"]) ?? 6379, "127.0.0.1");
+server.listen(args["--port"] ?? 6379, "127.0.0.1");
 
 if (args["--replicaof"]) {
-    setRule(true);
-    const [host, port] = args["--replicaof"].split(" ");
-    connectToMaster("PING", { host, port: Number(port) }, args["--port"] ?? 6379);
+  setRule(true);
+  const [host, port] = args["--replicaof"].split(" ");
+  connectToMaster("PING", { host, port: Number(port) }, args["--port"] ?? 6379);
 }
