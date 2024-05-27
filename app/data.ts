@@ -1,5 +1,5 @@
 type ValueType = { value: string, expiry: number };
-export default class Data {
+class Data {
     private static readonly map = new Map<string, ValueType>();
     private static time: number;
     /**
@@ -10,14 +10,14 @@ export default class Data {
     constructor() {
         Data.time = 0;
     }
-        /**
-     * Sets a key-value pair in the Data map with an optional expiry time.
-     *
-     * @param {string} key - The key to set in the map.
-     * @param {string} value - The value to associate with the key.
-     * @param {number} expiry - The expiry time for the key-value pair in milliseconds.
-     * @return {void} This function does not return a value.
-     */
+    /**
+ * Sets a key-value pair in the Data map with an optional expiry time.
+ *
+ * @param {string} key - The key to set in the map.
+ * @param {string} value - The value to associate with the key.
+ * @param {number} expiry - The expiry time for the key-value pair in milliseconds.
+ * @return {void} This function does not return a value.
+ */
 
     static set(key: string, value: string, expiry: number): void {
         Data.map.set(key, { value, expiry });
@@ -40,3 +40,4 @@ export default class Data {
         return value;
     }
 }
+export { Data };

@@ -1,54 +1,48 @@
 import * as net from "net";
-import Rx from "rxjs";
-import { buildResponse, handleRequest, parseCommand } from "./request.handle";
-import { CommandError, ParserError } from "./CustomError";
-import process from "process";
-import { logger } from "./logger";
 import arg from "arg";
+import parse from "./parser";
+import { setRule } from "./commands/ReplicaInfo";
+import { encodeArray } from "./encoder";
+
 /**
  * Handles the response by writing it to the socket.
- * @param {net.Socket} socket - The socket to write the response to.
- * @param {Buffer} data - The data received from the socket.
- */
-async function responseHandler(socket: net.Socket, data: Buffer, role:string) {
-    const request = parseCommand(data.toString());  
-    if (!(request instanceof ParserError)) {
-        const arg = handleRequest(request,role);
-        if (arg instanceof CommandError) {
-            socket.write(`$${arg.message}\r\n`);
-        } else {
-            const response = buildResponse(arg,arg.length === 0 ? -1 : arg.length);
-            socket.write(response);
-        }
-    }
-    // console.log(request.toString());
-
-}
-/**
-* Handles the socket connection and responds to incoming data with a response message.
-* @param {net.Socket} socket - The socket connection to handle.
-* @return {void} This function does not return anything.
-*/
-function socketHandler(socket: net.Socket, role: string): void {
-    const timeNow = new Date();
-    console.log(`[${timeNow.toLocaleString()}][SERVER] Connection established...`);
-    socket.on('data', (data: Buffer) => responseHandler(socket, data, role));
-}
-/**
- * Creates a server and listens for incoming socket connections on the specified port.
  *
- * @param {number} port - The port number to listen on.
+ * @param {net.Socket} connection - The socket to write the response to.
+ * @param {string} data - The data received from the socket.
  * @return {void} This function does not return anything.
  */
-function createServer(port: number, role: string): void {
-    const server: net.Server = net.createServer();
-    const socketServer: Rx.Observable<net.Socket> = Rx.fromEvent(server, "connection") as Rx.Observable<net.Socket>;
-    socketServer.subscribe(socket => socketHandler(socket, role));
-    server.listen(port, "127.0.0.1");
+const responseHandler = (connection: net.Socket, data: string): void => {
+    parse(data).commands.forEach((command) => {
+        connection.write(command.execute());
+    });
+};
+/**
+ * Connects to the master server and sends a message.
+ *
+ * @param {string} msg - The message to send to the master server.
+ * @param {object} options - The options for the connection.
+ * @param {string} options.host - The hostname of the master server.
+ * @param {number} options.port - The port number of the master server.
+ */
+const connectToMaster = (msg: string, options: { host: string, port: number }) => {
+    const replica = net.createConnection(options, () => {
+        replica.write(encodeArray([msg]));
+    });
 }
+const server = net.createServer((connection) => {
+    connection.on('data', (data) => {
+        responseHandler(connection, data.toString());
+    });
+});
 
 const args = arg({
     "--port": Number,
     "--replicaof": String,
 });
-createServer(args["--port"] ?? 6379, args["--replicaof"] ? "slave" : "master");
+server.listen((args["--port"]) ?? 6379, "127.0.0.1");
+
+if (args["--replicaof"]) {
+    setRule(true);
+    const [host, port] = args["--replicaof"].split(" ");
+    connectToMaster("PING", { host, port: Number(port) });
+}
