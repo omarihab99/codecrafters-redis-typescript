@@ -1,8 +1,10 @@
 import * as net from "net";
 import arg from "arg";
-import parse from "./parser";
+import { parse, createQueue } from "./parser";
 import { setRule } from "./commands/ReplicaInfo";
 import { encodeArray } from "./encoder";
+import decode from "./decoder";
+
 
 /**
  * Handles the response by writing it to the socket.
@@ -12,7 +14,7 @@ import { encodeArray } from "./encoder";
  * @return {void} This function does not return anything.
  */
 const responseHandler = (connection: net.Socket, data: string): void => {
-    parse(data).commands.forEach((command) => {
+    createQueue(parse(data)).commands.forEach((command) => {
         connection.write(command.execute());
     });
 };
@@ -23,11 +25,23 @@ const responseHandler = (connection: net.Socket, data: string): void => {
  * @param {object} options - The options for the connection.
  * @param {string} options.host - The hostname of the master server.
  * @param {number} options.port - The port number of the master server.
+ * @param {number} port - The port number of the replica server.
  */
-const connectToMaster = (msg: string, options: { host: string, port: number }) => {
-    const replica = net.createConnection(options, () => {
-        replica.write(encodeArray([msg]));
+const connectToMaster = (msg: string, options: { host: string, port: number }, port: number) => {
+    const connToMaster = net.createConnection(options, () => {
+        connToMaster.write(encodeArray([msg]));
     });
+    let countREPL = 0;
+    connToMaster.on('data', (data) => {
+        const decoded = decode(data.toString());
+        if (decoded[0][0] === "PONG") {
+            countREPL++;
+            connToMaster.write(encodeArray(["REPLCONF", "listening-port", `${port}`]));
+        } else if (decoded[0][0] === "OK" && countREPL === 1) {
+            countREPL++;
+            connToMaster.write(encodeArray(["REPLCONF", "capa", "psync2"]));
+        }
+    })
 }
 const server = net.createServer((connection) => {
     connection.on('data', (data) => {
@@ -44,5 +58,5 @@ server.listen((args["--port"]) ?? 6379, "127.0.0.1");
 if (args["--replicaof"]) {
     setRule(true);
     const [host, port] = args["--replicaof"].split(" ");
-    connectToMaster("PING", { host, port: Number(port) });
+    connectToMaster("PING", { host, port: Number(port) }, args["--port"] ?? 6379);
 }

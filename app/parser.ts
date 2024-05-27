@@ -1,7 +1,7 @@
 import decode from './decoder';
 import RedisQueue from './RedisQueue';
-const parse = (data: string) => {
-    const commands = decode(data);    
+const parse = (data: string) => decode(data);
+const createQueue = (commands: string[][]) => {
     const queue = new RedisQueue();
     commands.forEach(command => {
         queue.push(command);
@@ -9,4 +9,4 @@ const parse = (data: string) => {
     return queue;
 }
 
-export default parse;
+export { parse, createQueue };

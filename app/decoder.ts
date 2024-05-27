@@ -19,7 +19,7 @@ const decodeResp = (data: string): string[][] =>
 const decodeInline = (data: string): string[][] =>
     _.chain(data)
         .split(/\r\n/)
-        .map((cmd) => _.split(cmd, " "))
+        .map((cmd) => _.split(cmd, "+"))
         .value();
 
 /**
